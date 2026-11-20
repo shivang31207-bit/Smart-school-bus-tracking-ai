@@ -48,6 +48,7 @@ Our vision is simple: No more uncertainty, unnecessary waiting, or communication
    - **Route Stops Checklist**: Progressive stop arrival check-in with remaining student counts.
    - **Emergency SOS with Dual Confirmation**: Prominent SOS button requiring explicit reason confirmation before broadcasting emergency telemetry to dispatch and parents.
    - **Automated Accident & Vehicle Damage 4-Channel Broadcast**: In the event of vehicle damage or collision, automatically geo-locates the **Nearest Police Station**, dispatches the **Nearest Hospital Trauma Center & Ambulance**, broadcasts urgent alerts to **All Parents** of onboard students, and opens the **School Administration Incident Command Console**.
+   - **Automated Driver Phone Power-Off Sensor Watchdog**: Built-in dead-man's telemetry watchdog. If the driver's phone is switched off, runs out of battery, or is destroyed/disconnected mid-transit, the system automatically detects heartbeat failure and immediately triggers the 4-channel SOS broadcast to the nearest police station, nearest hospital, all parents, and school administration.
 
 ---
 

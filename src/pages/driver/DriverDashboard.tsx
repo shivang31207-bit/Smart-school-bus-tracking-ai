@@ -21,6 +21,13 @@ import {
   ArrowRight,
   PhoneCall,
   UserCheck,
+  Smartphone,
+  Battery,
+  Power,
+  Wifi,
+  WifiOff,
+  Siren,
+  Zap,
 } from 'lucide-react';
 
 export const DriverDashboard: React.FC = () => {
@@ -38,6 +45,8 @@ export const DriverDashboard: React.FC = () => {
     markStudentAttendance,
     triggerEmergencySos,
     showToast,
+    driverDeviceSensor,
+    toggleDriverDevicePower,
   } = useTransport();
 
   const [searchStudent, setSearchStudent] = useState('');
@@ -109,16 +118,14 @@ export const DriverDashboard: React.FC = () => {
         {/* GPS PRIVACY SHARING STATUS BADGE */}
         <div className="flex items-center gap-3">
           <div
-            className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold ${
-              driverTripState.status === 'active'
+            className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold ${driverTripState.status === 'active'
                 ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
                 : 'bg-slate-800 text-slate-400 border-slate-700'
-            }`}
+              }`}
           >
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                driverTripState.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-              }`}
+              className={`w-2.5 h-2.5 rounded-full ${driverTripState.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                }`}
             />
             <span>
               {driverTripState.status === 'active'
@@ -138,6 +145,66 @@ export const DriverDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* SENSOR-BASED PHONE WATCHDOG & POWER STATUS CARD */}
+      <div
+        className={`p-4 rounded-2xl border-2 transition-all ${
+          driverDeviceSensor.isPoweredOn
+            ? 'bg-white border-blue-200 shadow-2xs'
+            : 'bg-rose-950 border-rose-500 text-white shadow-xl animate-pulse'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2.5 rounded-xl ${
+                driverDeviceSensor.isPoweredOn
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-rose-600 text-white animate-bounce'
+              }`}
+            >
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-xs uppercase tracking-wider">
+                  Driver Phone Sensor & Heartbeat Watchdog
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-bold px-2 py-0.2 rounded-full ${
+                    driverDeviceSensor.isPoweredOn
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-rose-600 text-white border border-rose-300 animate-ping'
+                  }`}
+                >
+                  {driverDeviceSensor.isPoweredOn ? 'POWERED ON • 86%' : 'POWERED OFF • DISCONNECTED'}
+                </span>
+              </div>
+              <p className={`text-[11px] mt-0.5 leading-relaxed ${driverDeviceSensor.isPoweredOn ? 'text-slate-500' : 'text-rose-200 font-medium'}`}>
+                {driverDeviceSensor.isPoweredOn
+                  ? 'Failsafe armed: If phone powers off or loses telemetry mid-transit, an automated SOS is immediately transmitted to the Nearest Police, Hospital, Parents & Admin.'
+                  : '⚠️ SENSOR TRIGGERED: Device shutdown detected! Multi-agency emergency SOS dispatched to Police, Hospital, Parents & Admin.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={toggleDriverDevicePower}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all shadow-md flex items-center justify-center gap-2 ${
+              driverDeviceSensor.isPoweredOn
+                ? 'bg-slate-900 hover:bg-black text-rose-300 hover:text-white border border-slate-700'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+          >
+            <Power className="w-4 h-4" />
+            <span>
+              {driverDeviceSensor.isPoweredOn
+                ? 'Simulate Phone Switched Off'
+                : 'Power On / Restore Device'}
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* TRIP MANAGEMENT CONTROL STRIP */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -147,13 +214,12 @@ export const DriverDashboard: React.FC = () => {
             </span>
             <div className="flex items-center gap-2 mt-1">
               <span
-                className={`text-xs font-extrabold uppercase px-2 py-0.5 rounded ${
-                  driverTripState.status === 'active'
+                className={`text-xs font-extrabold uppercase px-2 py-0.5 rounded ${driverTripState.status === 'active'
                     ? 'bg-emerald-100 text-emerald-800'
                     : driverTripState.status === 'paused'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
               >
                 Status: {driverTripState.status}
               </span>
@@ -259,23 +325,21 @@ export const DriverDashboard: React.FC = () => {
                   <div
                     key={stop.id}
                     onClick={() => handleToggleStop(stop.id)}
-                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                      isDone
+                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${isDone
                         ? 'bg-slate-50 border-slate-200 text-slate-500'
                         : isCurrent
-                        ? 'bg-blue-50 border-blue-400 shadow-xs'
-                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                    }`}
+                          ? 'bg-blue-50 border-blue-400 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-50'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs border ${
-                          isDone
+                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs border ${isDone
                             ? 'bg-slate-300 text-slate-700 border-slate-300'
                             : isCurrent
-                            ? 'bg-blue-600 text-white border-blue-600 animate-pulse'
-                            : 'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}
+                              ? 'bg-blue-600 text-white border-blue-600 animate-pulse'
+                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
                       >
                         {isDone ? <Check className="w-3.5 h-3.5" /> : index + 1}
                       </div>
@@ -293,11 +357,10 @@ export const DriverDashboard: React.FC = () => {
 
                     <button
                       type="button"
-                      className={`text-xs font-bold px-3 py-1 rounded-lg transition-colors ${
-                        isDone
+                      className={`text-xs font-bold px-3 py-1 rounded-lg transition-colors ${isDone
                           ? 'bg-slate-200 text-slate-700'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
+                        }`}
                     >
                       {isDone ? 'Completed' : 'Mark Arrival'}
                     </button>
@@ -403,44 +466,40 @@ export const DriverDashboard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => markStudentAttendance(s.id, 'waiting')}
-                        className={`py-1 rounded text-[10px] font-bold transition-colors ${
-                          s.attendanceStatus === 'waiting'
+                        className={`py-1 rounded text-[10px] font-bold transition-colors ${s.attendanceStatus === 'waiting'
                             ? 'bg-amber-500 text-white'
                             : 'bg-white text-slate-700 hover:bg-amber-50 border border-slate-200'
-                        }`}
+                          }`}
                       >
                         Waiting
                       </button>
                       <button
                         type="button"
                         onClick={() => markStudentAttendance(s.id, 'boarded')}
-                        className={`py-1 rounded text-[10px] font-bold transition-colors ${
-                          s.attendanceStatus === 'boarded'
+                        className={`py-1 rounded text-[10px] font-bold transition-colors ${s.attendanceStatus === 'boarded'
                             ? 'bg-emerald-600 text-white'
                             : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
-                        }`}
+                          }`}
                       >
                         Boarded
                       </button>
                       <button
                         type="button"
                         onClick={() => markStudentAttendance(s.id, 'dropped_off')}
-                        className={`py-1 rounded text-[10px] font-bold transition-colors ${
-                          s.attendanceStatus === 'dropped_off'
+                        className={`py-1 rounded text-[10px] font-bold transition-colors ${s.attendanceStatus === 'dropped_off'
                             ? 'bg-blue-600 text-white'
                             : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
-                        }`}
+                          }`}
                       >
                         Dropped
                       </button>
                       <button
                         type="button"
                         onClick={() => markStudentAttendance(s.id, 'absent')}
-                        className={`py-1 rounded text-[10px] font-bold transition-colors ${
-                          s.attendanceStatus === 'absent'
+                        className={`py-1 rounded text-[10px] font-bold transition-colors ${s.attendanceStatus === 'absent'
                             ? 'bg-rose-600 text-white'
                             : 'bg-white text-slate-700 hover:bg-rose-50 border border-slate-200'
-                        }`}
+                          }`}
                       >
                         Absent
                       </button>

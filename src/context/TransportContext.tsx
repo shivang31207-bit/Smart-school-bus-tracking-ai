@@ -74,6 +74,16 @@ interface TransportContextType {
   setActiveIncidentReport: (report: IncidentDispatchReport | null) => void;
   triggerAccidentSos: (busId: string, reason?: string) => void;
 
+  // Sensor-Based Driver Phone Watchdog (Power-off / Heartbeat loss)
+  driverDeviceSensor: {
+    isPoweredOn: boolean;
+    batteryPercentage: number;
+    networkSignal: 'strong' | 'weak' | 'disconnected';
+    lastHeartbeat: string;
+    autoSosTriggered: boolean;
+  };
+  toggleDriverDevicePower: () => void;
+
   // Actions
   addBus: (bus: Omit<Bus, 'id'>) => void;
   updateBus: (bus: Bus) => void;
@@ -127,6 +137,21 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Active Emergency & Accident Incident Report (Police, Hospital, Parents, Admin)
   const [activeIncidentReport, setActiveIncidentReport] = useState<IncidentDispatchReport | null>(null);
+
+  // Driver Phone & Telemetry Sensor State (Watchdog for Sudden Shutdown / Battery Cut)
+  const [driverDeviceSensor, setDriverDeviceSensor] = useState<{
+    isPoweredOn: boolean;
+    batteryPercentage: number;
+    networkSignal: 'strong' | 'weak' | 'disconnected';
+    lastHeartbeat: string;
+    autoSosTriggered: boolean;
+  }>({
+    isPoweredOn: true,
+    batteryPercentage: 86,
+    networkSignal: 'strong',
+    lastHeartbeat: 'Healthy (2s telemetry)',
+    autoSosTriggered: false,
+  });
 
   // Driver Trip State
   const [driverTripState, setDriverTripState] = useState<DriverTripState>({
@@ -659,6 +684,40 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(isGpsSimulating ? 'GPS Simulation Paused' : 'GPS Simulation Active (5s Updates)', 'info');
   };
 
+  const toggleDriverDevicePower = () => {
+    if (driverDeviceSensor.isPoweredOn) {
+      // 1. Cut power and set device offline
+      setDriverDeviceSensor({
+        isPoweredOn: false,
+        batteryPercentage: 0,
+        networkSignal: 'disconnected',
+        lastHeartbeat: 'SIGNAL LOST / POWER CUT',
+        autoSosTriggered: true,
+      });
+
+      // 2. Automated sensor-based SOS trigger to Nearest Police Station, Hospital, Parents & Admin
+      triggerEmergencySos(
+        activeDriverBusId,
+        'AUTOMATED SENSOR TRIGGER: Driver device abruptly switched OFF / Heartbeat lost mid-transit (Possible vehicle collision, power outage, or device destruction)'
+      );
+
+      showToast(
+        'SENSOR WATCHDOG DETECTED POWER-OFF: Automated SOS dispatched to Police, Hospital, Parents & Admin!',
+        'error'
+      );
+    } else {
+      // Restore power
+      setDriverDeviceSensor({
+        isPoweredOn: true,
+        batteryPercentage: 88,
+        networkSignal: 'strong',
+        lastHeartbeat: 'Healthy (2s telemetry)',
+        autoSosTriggered: false,
+      });
+      showToast('Driver mobile device powered ON. Telemetry heartbeat re-established.', 'success');
+    }
+  };
+
   const resetAllData = () => {
     resetStorageToDefaults();
     const fresh = loadInitialData();
@@ -703,6 +762,8 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         activeIncidentReport,
         setActiveIncidentReport,
         triggerAccidentSos,
+        driverDeviceSensor,
+        toggleDriverDevicePower,
         addBus,
         updateBus,
         deleteBus,

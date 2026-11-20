@@ -77,6 +77,8 @@ export const AdminDashboard: React.FC = () => {
     seedDatabaseToFirebase,
     triggerAccidentSos,
     activeIncidentReport,
+    driverDeviceSensor,
+    toggleDriverDevicePower,
   } = useTransport();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dispatch');
@@ -1078,7 +1080,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {activeIncidentReport && (
                   <button
                     onClick={() => setIsIncidentModalOpen(true)}
@@ -1088,6 +1090,22 @@ export const AdminDashboard: React.FC = () => {
                     <span>Open Active Incident Console</span>
                   </button>
                 )}
+                <button
+                  onClick={toggleDriverDevicePower}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 border ${
+                    driverDeviceSensor.isPoweredOn
+                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-300'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
+                  }`}
+                  title="Simulate sudden power loss / shutdown of driver's phone"
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>
+                    {driverDeviceSensor.isPoweredOn
+                      ? 'Simulate Driver Phone Switched Off'
+                      : 'Restore Driver Phone Power'}
+                  </span>
+                </button>
                 <button
                   onClick={() => triggerAccidentSos('BUS-04', 'Simulated Vehicle Collision & Impact Damage')}
                   className="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
