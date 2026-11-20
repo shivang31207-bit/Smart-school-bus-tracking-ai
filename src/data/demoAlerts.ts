@@ -1,0 +1,115 @@
+import { Alert, NotificationItem, SpeedViolation, RouteDeviation } from '../types';
+
+export const INITIAL_ALERTS: Alert[] = [
+  {
+    id: 'ALT-101',
+    category: 'overspeeding',
+    severity: 'warning',
+    title: 'Speed Limit Warning: Bus 14',
+    message: 'Bus 14 logged 52 km/h on Expressway Sector 6 (Configured limit: 45 km/h). Telemetry alert sent to driver.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    busId: 'BUS-14',
+    busNumber: 'BUS-14',
+    routeId: 'RT-104',
+    resolved: false,
+  },
+  {
+    id: 'ALT-102',
+    category: 'delayed',
+    severity: 'info',
+    title: 'Traffic Delay Notification: Bus 11',
+    message: 'Bus 11 reported 14-min traffic delay at Highland Park Crossing due to municipal utility work.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
+    busId: 'BUS-11',
+    busNumber: 'BUS-11',
+    routeId: 'RT-103',
+    resolved: true,
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+  },
+  {
+    id: 'ALT-103',
+    category: 'trip_started',
+    severity: 'info',
+    title: 'Morning Fleet Run Active: Bus 04',
+    message: 'Driver Rajesh Kumar started Morning Run RT-101. Live GPS tracking broadcast enabled.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    busId: 'BUS-04',
+    busNumber: 'BUS-04',
+    routeId: 'RT-101',
+    resolved: true,
+  },
+];
+
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'NOTIF-01',
+    title: 'Bus 04 Trip Active',
+    message: 'Yellow Cruiser 04 has commenced its morning pickup route.',
+    category: 'trip_started',
+    severity: 'info',
+    timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    read: false,
+    targetRole: 'all',
+    busId: 'BUS-04',
+  },
+  {
+    id: 'NOTIF-02',
+    title: 'Bus Approaching: Maple Enclave',
+    message: 'Bus 04 is approximately 2.1 km away (~4 mins). Please be ready at Block C stop.',
+    category: 'approaching',
+    severity: 'info',
+    timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
+    read: false,
+    targetRole: 'parent',
+    targetId: 'PAR-01',
+    busId: 'BUS-04',
+  },
+  {
+    id: 'NOTIF-03',
+    title: 'Student Boarded: Rohan Mehra',
+    message: 'Rohan Mehra checked in at North Gate Residency stop.',
+    category: 'boarded',
+    severity: 'success',
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    read: true,
+    targetRole: 'admin',
+    busId: 'BUS-04',
+  },
+];
+
+export const INITIAL_SPEED_VIOLATIONS: SpeedViolation[] = [
+  {
+    id: 'SPD-01',
+    busId: 'BUS-14',
+    registrationNumber: 'DL-06-TC-1482',
+    driverName: 'Fleet Driver 14',
+    speed: 52,
+    speedLimit: 45,
+    location: 'Expressway Sector 6 Sector Link',
+    timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    severity: 'minor',
+  },
+  {
+    id: 'SPD-02',
+    busId: 'BUS-09',
+    registrationNumber: 'DL-09-TC-2290',
+    driverName: 'Fleet Driver 9',
+    speed: 56,
+    speedLimit: 45,
+    location: 'Ring Road Bypass Flyover',
+    timestamp: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+    severity: 'critical',
+  },
+];
+
+export const INITIAL_ROUTE_DEVIATIONS: RouteDeviation[] = [
+  {
+    id: 'DEV-01',
+    busId: 'BUS-19',
+    routeName: 'West Hill & Forest Hills Circuit',
+    currentLocation: 'Sector 18 Service Lane (Detour for pipeline repairs)',
+    deviationDistanceMeters: 380,
+    timestamp: new Date(Date.now() - 1000 * 60 * 22).toISOString(),
+    status: 'active',
+  },
+];
