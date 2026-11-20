@@ -36,7 +36,11 @@ import {
   Sparkles,
   ChevronRight,
   UserCheck,
+  Siren,
+  Hospital,
+  Phone,
 } from 'lucide-react';
+import { IncidentResponseModal } from '../../components/dashboard/IncidentResponseModal';
 
 type AdminTab =
   | 'dispatch'
@@ -71,12 +75,15 @@ export const AdminDashboard: React.FC = () => {
     isFirebaseConnected,
     isSeedingFirebase,
     seedDatabaseToFirebase,
+    triggerAccidentSos,
+    activeIncidentReport,
   } = useTransport();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dispatch');
   const [selectedBusId, setSelectedBusId] = useState<string>('BUS-04');
   const [busFilterStatus, setBusFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
 
   // Modals state
   const [isBusModalOpen, setIsBusModalOpen] = useState(false);
@@ -1048,6 +1055,92 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* VEHICLE ACCIDENT & COLLISION MULTI-AGENCY PROTOCOL CARD */}
+          <div className="bg-gradient-to-br from-rose-50 via-white to-red-50 p-5 rounded-2xl border-2 border-rose-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-rose-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-600 text-white rounded-xl shadow-md">
+                  <Siren className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-black text-sm text-slate-900 uppercase tracking-tight">
+                      Automated Accident & Vehicle Damage Response Protocol
+                    </h4>
+                    <span className="text-[10px] font-bold bg-rose-600 text-white px-2 py-0.5 rounded-full">
+                      4 CHANNELS
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    When a vehicle collision, impact sensor trigger, or structural damage occurs, emergency telemetry is instantly dispatched across 4 channels:
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {activeIncidentReport && (
+                  <button
+                    onClick={() => setIsIncidentModalOpen(true)}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                    <span>Open Active Incident Console</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => triggerAccidentSos('BUS-04', 'Simulated Vehicle Collision & Impact Damage')}
+                  className="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  <AlertOctagon className="w-4 h-4 text-amber-400" />
+                  <span>Test Accident SOS Broadcast (Bus 04)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Dispatch Channel Columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-xs">
+              <div className="p-3.5 bg-white rounded-xl border border-blue-200 shadow-2xs">
+                <div className="flex items-center gap-2 text-blue-600 font-bold mb-1">
+                  <Siren className="w-4 h-4" />
+                  <span>1. Nearest Police Station</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Live GPS coordinate matching identifies the closest police station, activates PCR intercept van, and clears emergency corridors.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-2xs">
+                <div className="flex items-center gap-2 text-emerald-600 font-bold mb-1">
+                  <Hospital className="w-4 h-4" />
+                  <span>2. Nearest Hospital ER</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Alerts the nearest pediatric trauma care center, dispatches an Advanced Life Support (ALS) ambulance, and prepares emergency triage.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-white rounded-xl border border-indigo-200 shadow-2xs">
+                <div className="flex items-center gap-2 text-indigo-600 font-bold mb-1">
+                  <Users className="w-4 h-4" />
+                  <span>3. All Parents / Guardians</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Sends automated high-priority SMS & app push notifications to all parents of students aboard the bus with incident details and first responder status.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-white rounded-xl border border-slate-300 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-800 font-bold mb-1">
+                  <FileText className="w-4 h-4" />
+                  <span>4. School Administration</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Immediate audible beacon on dispatch consoles, opens the incident crisis command center, and alerts campus security teams.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1117,6 +1210,12 @@ export const AdminDashboard: React.FC = () => {
         message={deleteDialog.message}
         onClose={() => setDeleteDialog((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={deleteDialog.onConfirm}
+      />
+
+      <IncidentResponseModal
+        isOpen={isIncidentModalOpen}
+        incident={activeIncidentReport}
+        onClose={() => setIsIncidentModalOpen(false)}
       />
     </div>
   );

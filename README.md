@@ -47,6 +47,7 @@ Our vision is simple: No more uncertainty, unnecessary waiting, or communication
    - **Touch Attendance Checklist**: Fast, one-click student boarding and drop-off status toggles.
    - **Route Stops Checklist**: Progressive stop arrival check-in with remaining student counts.
    - **Emergency SOS with Dual Confirmation**: Prominent SOS button requiring explicit reason confirmation before broadcasting emergency telemetry to dispatch and parents.
+   - **Automated Accident & Vehicle Damage 4-Channel Broadcast**: In the event of vehicle damage or collision, automatically geo-locates the **Nearest Police Station**, dispatches the **Nearest Hospital Trauma Center & Ambulance**, broadcasts urgent alerts to **All Parents** of onboard students, and opens the **School Administration Incident Command Console**.
 
 ---
 

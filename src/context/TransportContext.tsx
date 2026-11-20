@@ -22,6 +22,10 @@ import {
   subscribeToFirestoreBuses,
   checkFirestoreHealth,
 } from '../services/firebaseService';
+import {
+  IncidentDispatchReport,
+  buildIncidentDispatchReport,
+} from '../utils/emergencyServices';
 
 interface ToastItem {
   id: string;
@@ -64,6 +68,11 @@ interface TransportContextType {
   isFirebaseConnected: boolean;
   isSeedingFirebase: boolean;
   seedDatabaseToFirebase: () => Promise<void>;
+
+  // Emergency Incident Protocol
+  activeIncidentReport: IncidentDispatchReport | null;
+  setActiveIncidentReport: (report: IncidentDispatchReport | null) => void;
+  triggerAccidentSos: (busId: string, reason?: string) => void;
 
   // Actions
   addBus: (bus: Omit<Bus, 'id'>) => void;
@@ -115,6 +124,9 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Firebase Status State
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [isSeedingFirebase, setIsSeedingFirebase] = useState<boolean>(false);
+
+  // Active Emergency & Accident Incident Report (Police, Hospital, Parents, Admin)
+  const [activeIncidentReport, setActiveIncidentReport] = useState<IncidentDispatchReport | null>(null);
 
   // Driver Trip State
   const [driverTripState, setDriverTripState] = useState<DriverTripState>({
@@ -523,8 +535,15 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Attendance updated for ${student.name}: ${status.toUpperCase()}`, 'success');
   };
 
-  // Emergency SOS Trigger
-  const triggerEmergencySos = (busId: string, reason = 'Driver signaled critical distress / mechanical emergency') => {
+  // Emergency SOS & Accident Dispatch Trigger (Multi-Agency Protocol)
+  const triggerEmergencySos = (busId: string, reason = 'Vehicle Collision / Impact Damage / Emergency Distress') => {
+    const targetBus = buses.find((b) => b.id === busId) || buses[0]!;
+    
+    // 1. Build Multi-Agency Emergency Incident Report (Police, Hospital, Parents, Admin)
+    const incidentReport = buildIncidentDispatchReport(targetBus, reason, students);
+    setActiveIncidentReport(incidentReport);
+
+    // 2. Put bus in emergency state
     setBuses((prev) =>
       prev.map((b) => {
         if (b.id === busId) {
@@ -536,13 +555,14 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       })
     );
 
+    // 3. Create Critical Emergency Alert for School Administration
     const alertId = 'ALT-SOS-' + Date.now();
     const newAlert: Alert = {
       id: alertId,
       category: 'sos',
       severity: 'critical',
-      title: `CRITICAL SOS: Emergency Beacon from Bus ${busId}`,
-      message: `${reason}. Immediate dispatcher verification and response required.`,
+      title: `CRITICAL ACCIDENT SOS: Bus ${busId}`,
+      message: `${reason} at ${targetBus.location.address || 'corridor'}. Dispatched: ${incidentReport.policeStation.name} & ${incidentReport.hospital.name}. All ${incidentReport.parentBroadcast.totalParentsNotified} parents alerted.`,
       timestamp: new Date().toISOString(),
       busId,
       busNumber: busId,
@@ -551,10 +571,38 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAlerts((prev) => [newAlert, ...prev]);
     pushAlertToFirestore(newAlert);
 
-    const sosNotif: NotificationItem = {
+    // 4. Multi-Channel Notifications:
+    // A) Parents of students on this bus
+    const parentAlertNotif: NotificationItem = {
+      id: 'notif_par_sos_' + Date.now(),
+      title: `URGENT SAFETY ALERT: Bus ${busId} Accident / Damage`,
+      message: incidentReport.parentBroadcast.smsMessage,
+      category: 'sos',
+      severity: 'critical',
+      timestamp: new Date().toISOString(),
+      read: false,
+      targetRole: 'parent',
+      busId,
+    };
+
+    // B) School Admin Command
+    const adminAlertNotif: NotificationItem = {
+      id: 'notif_admin_sos_' + Date.now(),
+      title: `EMERGENCY DISPATCH: Bus ${busId} Collision`,
+      message: `Emergency SOS triggered. Nearest Police (${incidentReport.policeStation.name}) & Hospital (${incidentReport.hospital.name}) notified with live GPS coordinates.`,
+      category: 'sos',
+      severity: 'critical',
+      timestamp: new Date().toISOString(),
+      read: false,
+      targetRole: 'admin',
+      busId,
+    };
+
+    // C) Global System Beacon
+    const globalNotif: NotificationItem = {
       id: 'notif_sos_' + Date.now(),
-      title: `EMERGENCY ALERT: Bus ${busId}`,
-      message: `Emergency SOS triggered for Bus ${busId}. Campus dispatch center alerted.`,
+      title: `CRITICAL BEACON: Bus ${busId} Emergency`,
+      message: `Multi-agency first responders (Police, Trauma ER, Campus Security) dispatched to ${targetBus.location.address}.`,
       category: 'sos',
       severity: 'critical',
       timestamp: new Date().toISOString(),
@@ -562,9 +610,17 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       targetRole: 'all',
       busId,
     };
-    setNotifications((prev) => [sosNotif, ...prev]);
 
-    showToast(`EMERGENCY SOS BROADCAST FOR BUS ${busId}`, 'error');
+    setNotifications((prev) => [parentAlertNotif, adminAlertNotif, globalNotif, ...prev]);
+
+    showToast(
+      `ACCIDENT SOS: Police (${incidentReport.policeStation.name}), Hospital (${incidentReport.hospital.name}), and ${incidentReport.parentBroadcast.totalParentsNotified} Parents Dispatched!`,
+      'error'
+    );
+  };
+
+  const triggerAccidentSos = (busId: string, reason = 'Severe Vehicle Collision & Structural Damage Detected') => {
+    triggerEmergencySos(busId, reason);
   };
 
   const resolveAlert = (alertId: string) => {
@@ -644,6 +700,9 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isFirebaseConnected,
         isSeedingFirebase,
         seedDatabaseToFirebase,
+        activeIncidentReport,
+        setActiveIncidentReport,
+        triggerAccidentSos,
         addBus,
         updateBus,
         deleteBus,

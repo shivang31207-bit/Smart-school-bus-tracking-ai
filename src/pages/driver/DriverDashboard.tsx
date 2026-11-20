@@ -471,7 +471,11 @@ export const DriverDashboard: React.FC = () => {
 
             <p className="text-xs text-slate-700 leading-relaxed">
               Confirming this beacon immediately transmits high-priority critical emergency telemetry from{' '}
-              <strong className="text-slate-900 font-mono">{bus.id}</strong> directly to Oakridge Campus Dispatch, Local First Responders, and Parents.
+              <strong className="text-slate-900 font-mono">{bus.id}</strong> directly to the{' '}
+              <strong className="text-blue-700">Nearest Police Station</strong>,{' '}
+              <strong className="text-emerald-700">Nearest Hospital Trauma ER</strong>,{' '}
+              <strong className="text-indigo-700">All Parents</strong>, and{' '}
+              <strong className="text-slate-900">School Administration Command</strong>.
             </p>
 
             <div className="mt-4">
@@ -483,12 +487,15 @@ export const DriverDashboard: React.FC = () => {
                 onChange={(e) => setSosReason(e.target.value)}
                 className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
               >
-                <option value="Critical Mechanical Breakdown / Engine Fire">
-                  Critical Mechanical Breakdown / Engine Hazard
+                <option value="Vehicle Collision / Road Accident (Structural Damage)">
+                  💥 Vehicle Collision / Road Accident (Structural Damage)
                 </option>
-                <option value="Passenger Medical Emergency">Passenger Medical Emergency</option>
-                <option value="Road Traffic Collision / Route Blocked">Road Traffic Collision / Route Blocked</option>
-                <option value="Security Distress Alert">Security Distress Alert</option>
+                <option value="Critical Mechanical Breakdown / Engine Hazard">
+                  ⚠️ Critical Mechanical Breakdown / Engine Hazard
+                </option>
+                <option value="Passenger Medical Emergency">🚑 Passenger Medical Emergency</option>
+                <option value="Road Traffic Collision / Route Blocked">🚧 Road Traffic Collision / Route Blocked</option>
+                <option value="Security Distress Alert">🛡️ Security Distress Alert</option>
               </select>
             </div>
 
