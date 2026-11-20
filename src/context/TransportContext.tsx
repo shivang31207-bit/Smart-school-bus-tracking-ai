@@ -14,6 +14,14 @@ import {
 } from '../types';
 import { loadInitialData, saveToStorage, resetStorageToDefaults } from '../services/mockStorage';
 import { stepGpsSimulation } from '../services/gpsService';
+import {
+  seedAllCollectionsToFirestore,
+  updateBusTelemetryInFirestore,
+  updateStudentAttendanceInFirestore,
+  pushAlertToFirestore,
+  subscribeToFirestoreBuses,
+  checkFirestoreHealth,
+} from '../services/firebaseService';
 
 interface ToastItem {
   id: string;
@@ -51,6 +59,11 @@ interface TransportContextType {
   toasts: ToastItem[];
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   dismissToast: (id: string) => void;
+
+  // Firebase integration
+  isFirebaseConnected: boolean;
+  isSeedingFirebase: boolean;
+  seedDatabaseToFirebase: () => Promise<void>;
 
   // Actions
   addBus: (bus: Omit<Bus, 'id'>) => void;
@@ -99,6 +112,10 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isGpsSimulating, setIsGpsSimulating] = useState<boolean>(true);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // Firebase Status State
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+  const [isSeedingFirebase, setIsSeedingFirebase] = useState<boolean>(false);
+
   // Driver Trip State
   const [driverTripState, setDriverTripState] = useState<DriverTripState>({
     status: 'active',
@@ -128,7 +145,33 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Switched view to ${newRole.toUpperCase()} Dashboard`, 'info');
   };
 
-  // Sync to storage on modifications
+  // Test Firebase Connectivity & Listen to Cloud Firestore
+  useEffect(() => {
+    let isMounted = true;
+    checkFirestoreHealth().then((connected) => {
+      if (isMounted) {
+        setIsFirebaseConnected(connected);
+      }
+    });
+
+    const unsubscribe = subscribeToFirestoreBuses(
+      (cloudBuses) => {
+        if (cloudBuses && cloudBuses.length > 0) {
+          setBuses(cloudBuses);
+        }
+      },
+      (error) => {
+        console.debug('Firestore live subscription fallback note:', error?.message);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Sync to local storage on modifications
   useEffect(() => {
     saveToStorage('BUSES', buses);
   }, [buses]);
@@ -170,14 +213,18 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setBuses((prevBuses) => {
         const { updatedBuses, events } = stepGpsSimulation(prevBuses, routes);
 
+        // Sync featured active bus telemetry to Firebase
+        const featuredBus = updatedBuses.find((b) => b.id === 'BUS-04');
+        if (featuredBus) {
+          updateBusTelemetryInFirestore(featuredBus);
+        }
+
         // Process generated telemetry events
         if (events.length > 0) {
           events.forEach((ev) => {
             if (ev.type === 'approaching_stop' && ev.busId === 'BUS-04') {
-              // Add approaching notification for parent
               const notifId = 'notif_' + Date.now();
               setNotifications((prev) => {
-                // Avoid flooding duplicates
                 if (prev.some((n) => n.category === 'approaching' && Date.now() - new Date(n.timestamp).getTime() < 30000)) {
                   return prev;
                 }
@@ -208,6 +255,22 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => clearInterval(interval);
   }, [isGpsSimulating, routes]);
 
+  // Seed All Data to Cloud Firestore
+  const seedDatabaseToFirebase = async () => {
+    setIsSeedingFirebase(true);
+    showToast('Uploading fleet records to Cloud Firestore...', 'info');
+
+    const result = await seedAllCollectionsToFirestore(buses, routes, students, drivers, alerts);
+    setIsSeedingFirebase(false);
+
+    if (result.success) {
+      setIsFirebaseConnected(true);
+      showToast(`Firestore Synced: ${result.count} documents written!`, 'success');
+    } else {
+      showToast(`Firebase Note: ${result.message}`, 'warning');
+    }
+  };
+
   // Bus Management CRUD
   const addBus = (busData: Omit<Bus, 'id'>) => {
     const newId = `BUS-${buses.length + 1 < 10 ? '0' : ''}${buses.length + 1}`;
@@ -217,11 +280,13 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       lastGpsUpdate: new Date().toISOString(),
     };
     setBuses((prev) => [newBus, ...prev]);
+    updateBusTelemetryInFirestore(newBus);
     showToast(`Bus ${newId} registered to fleet successfully`, 'success');
   };
 
   const updateBus = (bus: Bus) => {
     setBuses((prev) => prev.map((b) => (b.id === bus.id ? bus : b)));
+    updateBusTelemetryInFirestore(bus);
     showToast(`Bus ${bus.id} details updated`, 'success');
   };
 
@@ -283,20 +348,22 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     setBuses((prev) =>
-      prev.map((b) =>
-        b.id === busId
-          ? {
-              ...b,
-              status: 'moving',
-              isGpsActive: true,
-              speed: 34,
-              lastGpsUpdate: new Date().toISOString(),
-            }
-          : b
-      )
+      prev.map((b) => {
+        if (b.id === busId) {
+          const updated = {
+            ...b,
+            status: 'moving' as const,
+            isGpsActive: true,
+            speed: 34,
+            lastGpsUpdate: new Date().toISOString(),
+          };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
 
-    // Broadcast trip started notification
     const newNotif: NotificationItem = {
       id: 'notif_' + Date.now(),
       title: `Bus ${busId} Trip Commenced`,
@@ -315,7 +382,14 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const pauseDriverTrip = (busId: string) => {
     setDriverTripState((prev) => ({ ...prev, status: 'paused' }));
     setBuses((prev) =>
-      prev.map((b) => (b.id === busId ? { ...b, status: 'stopped', speed: 0 } : b))
+      prev.map((b) => {
+        if (b.id === busId) {
+          const updated = { ...b, status: 'stopped' as const, speed: 0 };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
     showToast(`Trip paused for Bus ${busId}`, 'warning');
   };
@@ -323,7 +397,14 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const resumeDriverTrip = (busId: string) => {
     setDriverTripState((prev) => ({ ...prev, status: 'active' }));
     setBuses((prev) =>
-      prev.map((b) => (b.id === busId ? { ...b, status: 'moving', speed: 32 } : b))
+      prev.map((b) => {
+        if (b.id === busId) {
+          const updated = { ...b, status: 'moving' as const, speed: 32 };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
     showToast(`Trip resumed for Bus ${busId}`, 'success');
   };
@@ -331,17 +412,20 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const endDriverTrip = (busId: string) => {
     setDriverTripState((prev) => ({ ...prev, status: 'completed' }));
     setBuses((prev) =>
-      prev.map((b) =>
-        b.id === busId
-          ? {
-              ...b,
-              status: 'completed',
-              isGpsActive: false,
-              speed: 0,
-              lastGpsUpdate: new Date().toISOString(),
-            }
-          : b
-      )
+      prev.map((b) => {
+        if (b.id === busId) {
+          const updated = {
+            ...b,
+            status: 'completed' as const,
+            isGpsActive: false,
+            speed: 0,
+            lastGpsUpdate: new Date().toISOString(),
+          };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
 
     const newNotif: NotificationItem = {
@@ -359,12 +443,15 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Trip completed for Bus ${busId}. Location sharing stopped.`, 'success');
   };
 
-  // Student Attendance Marking (Cross-Dashboard Sync)
+  // Student Attendance Marking (Cross-Dashboard Sync & Cloud Firestore)
   const markStudentAttendance = (studentId: string, status: AttendanceStatus) => {
     const student = students.find((s) => s.id === studentId);
     if (!student) return;
 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Update in Cloud Firestore
+    updateStudentAttendanceInFirestore(studentId, status, timeStr);
 
     setStudents((prev) =>
       prev.map((s) =>
@@ -383,10 +470,12 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       prev.map((b) => {
         if (b.id === student.busId) {
           const delta = status === 'boarded' ? 1 : status === 'dropped_off' ? -1 : 0;
-          return {
+          const updated = {
             ...b,
             currentOccupancy: Math.max(0, Math.min(b.capacity, b.currentOccupancy + delta)),
           };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
         }
         return b;
       })
@@ -437,7 +526,14 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Emergency SOS Trigger
   const triggerEmergencySos = (busId: string, reason = 'Driver signaled critical distress / mechanical emergency') => {
     setBuses((prev) =>
-      prev.map((b) => (b.id === busId ? { ...b, status: 'emergency', speed: 0 } : b))
+      prev.map((b) => {
+        if (b.id === busId) {
+          const updated = { ...b, status: 'emergency' as const, speed: 0 };
+          updateBusTelemetryInFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
 
     const alertId = 'ALT-SOS-' + Date.now();
@@ -453,6 +549,7 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       resolved: false,
     };
     setAlerts((prev) => [newAlert, ...prev]);
+    pushAlertToFirestore(newAlert);
 
     const sosNotif: NotificationItem = {
       id: 'notif_sos_' + Date.now(),
@@ -544,6 +641,9 @@ export const TransportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toasts,
         showToast,
         dismissToast,
+        isFirebaseConnected,
+        isSeedingFirebase,
+        seedDatabaseToFirebase,
         addBus,
         updateBus,
         deleteBus,

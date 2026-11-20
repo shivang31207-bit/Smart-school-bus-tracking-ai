@@ -94,6 +94,29 @@ All 3 stakeholder interfaces operate on a centralized React Context with local s
 
 ---
 
+## 🔥 Firebase Cloud Backend Integration
+
+The system is configured with your Firebase project:
+- **Project ID**: `smart-school-bus-tracking-ai`
+- **Auth Domain**: `smart-school-bus-tracking-ai.firebaseapp.com`
+- **Cloud Firestore**: Real-time collections for `buses`, `students`, `routes`, `drivers`, and `alerts`
+- **One-Click Cloud Seeding**: Use the "Upload Fleet to Firestore" / "Sync Firestore" button in the navigation or Admin dashboard to populate all 34 buses, routes, and students into Cloud Firestore.
+
+### Cloud Firestore Security Rules (For Development/Testing)
+In your [Firebase Console](https://console.firebase.google.com/project/smart-school-bus-tracking-ai/firestore/rules), set test rules:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+---
+
 ## 🛠 Tech Stack
 - **Framework**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS v4 (Transportation SaaS design system)

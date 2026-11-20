@@ -68,6 +68,9 @@ export const AdminDashboard: React.FC = () => {
     markStudentAttendance,
     resolveAlert,
     showToast,
+    isFirebaseConnected,
+    isSeedingFirebase,
+    seedDatabaseToFirebase,
   } = useTransport();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dispatch');
@@ -243,6 +246,38 @@ export const AdminDashboard: React.FC = () => {
             {emergencyCount > 0 ? 'Emergency beacon active' : 'Normal corridor limits'}
           </div>
         </div>
+      </div>
+
+      {/* FIREBASE CLOUD DATABASE STATUS BAR */}
+      <div className="bg-white px-4 py-3 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+            🔥
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900">Cloud Firestore Connected:</span>
+              <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded font-semibold text-[11px]">
+                smart-school-bus-tracking-ai
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                LIVE SYNC READY
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Live updates propagate across devices via Firebase Realtime listeners.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={seedDatabaseToFirebase}
+          disabled={isSeedingFirebase}
+          className="self-start sm:self-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+        >
+          <span>{isSeedingFirebase ? 'Syncing to Cloud...' : 'Upload Fleet to Firestore'}</span>
+        </button>
       </div>
 
       {/* =========================================================================

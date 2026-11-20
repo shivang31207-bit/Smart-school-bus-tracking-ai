@@ -10,8 +10,10 @@ import {
   RotateCcw,
   Play,
   Pause,
-  ChevronDown,
   Sparkles,
+  Cloud,
+  Database,
+  Flame,
 } from 'lucide-react';
 import { NotificationDrawer } from '../notifications/NotificationDrawer';
 
@@ -27,6 +29,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAiAssistant }) => {
     isGpsSimulating,
     toggleGpsSimulation,
     resetAllData,
+    isFirebaseConnected,
+    isSeedingFirebase,
+    seedDatabaseToFirebase,
   } = useTransport();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -65,19 +70,40 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAiAssistant }) => {
   return (
     <>
       <header className="sticky top-0 z-[1000] bg-white border-b border-slate-200/90 shadow-2xs">
-        {/* Top Demo Bar */}
+        {/* Top Operational Status Bar */}
         <div className="bg-slate-900 text-slate-300 text-[11px] px-4 py-1.5 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              DEMO MODE • SYNCHRONIZED ACROSS ROLES
+            {/* Firebase Live Status */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] font-bold border transition-colors ${
+                isFirebaseConnected
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                  : 'bg-slate-800 text-slate-300 border-slate-700'
+              }`}
+              title="Firebase Project: smart-school-bus-tracking-ai"
+            >
+              <Flame className="w-3 h-3 text-amber-400 animate-pulse" />
+              <span>FIREBASE: {isFirebaseConnected ? 'CONNECTED' : 'STANDBY'}</span>
+              <span className="hidden sm:inline text-amber-200 font-normal">• smart-school-bus-tracking-ai</span>
             </span>
-            <span className="hidden sm:inline text-slate-400">
-              Oakridge International Academy • Unified Transport Intelligence Platform
+
+            <span className="hidden md:inline text-slate-400">
+              Oakridge International Academy • Unified Transport Platform
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Sync / Seed to Firebase Button */}
+            <button
+              onClick={seedDatabaseToFirebase}
+              disabled={isSeedingFirebase}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-600/50 transition-colors disabled:opacity-50"
+              title="Upload all 34 buses, routes and students to Cloud Firestore"
+            >
+              <Database className={`w-3 h-3 ${isSeedingFirebase ? 'animate-spin' : ''}`} />
+              <span>{isSeedingFirebase ? 'Syncing...' : 'Sync Firestore'}</span>
+            </button>
+
             {/* GPS Simulation control */}
             <button
               onClick={toggleGpsSimulation}
@@ -91,12 +117,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAiAssistant }) => {
               {isGpsSimulating ? (
                 <>
                   <Pause className="w-3 h-3 text-emerald-400" />
-                  <span>GPS Telemetry Active (5s)</span>
+                  <span className="hidden sm:inline">GPS Active (5s)</span>
                 </>
               ) : (
                 <>
                   <Play className="w-3 h-3 text-amber-400" />
-                  <span>GPS Telemetry Paused</span>
+                  <span className="hidden sm:inline">GPS Paused</span>
                 </>
               )}
             </button>
@@ -108,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAiAssistant }) => {
               title="Reset all demo data to initial state"
             >
               <RotateCcw className="w-3 h-3" />
-              <span className="hidden md:inline">Reset Demo</span>
+              <span className="hidden lg:inline">Reset</span>
             </button>
           </div>
         </div>
